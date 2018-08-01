@@ -1,14 +1,17 @@
 package org.javacream.books.isbngenerator.impl;
 
+import java.util.Date;
+
 import javax.persistence.EntityManager;
 import javax.persistence.Query;
 
 import org.javacream.books.isbngenerator.api.IsbnGeneratorService;
+import org.javacream.util.log.api.LogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -22,8 +25,11 @@ public class DatabaseSequenceIsbnGeneratorService implements IsbnGeneratorServic
 
 	@Autowired
 	private EntityManager entityManager;
+	@Autowired
+	private LogService logService;
+	@Autowired
+	private DatabaseSequenceIsbnGeneratorService delegate;
 
-	@Autowired private DatabaseSequenceIsbnGeneratorService delegate;
 	public String getCountryCode() {
 		return countryCode;
 	}
@@ -32,9 +38,18 @@ public class DatabaseSequenceIsbnGeneratorService implements IsbnGeneratorServic
 		this.countryCode = suffix;
 	}
 
-	//@Transactional(isolation=Isolation.READ_COMMITTED)
+	@Transactional(propagation = Propagation.REQUIRED)
 	public String next() {
-		return prefix + delegate.nextKey() + countryCode;
+		int nextKey = delegate.nextKey();
+		String isbn = prefix + nextKey + countryCode;
+		try { //2 + 1 -> Exception, transaction marked for rollback, 3 + 3 -> key updated, log not written
+			logService.log("created new isbn " + isbn + " at " + new Date());
+		} catch (RuntimeException e) {
+			//OK
+		}
+//		logService.log("created new isbn " + isbn + " at " + new Date());
+		return isbn;
+
 	}
 
 	public String getPrefix() {
@@ -45,7 +60,6 @@ public class DatabaseSequenceIsbnGeneratorService implements IsbnGeneratorServic
 		this.prefix = prefix;
 	}
 
-	@Transactional(isolation=Isolation.SERIALIZABLE)
 	public int nextKey() {
 		Integer key = (Integer) entityManager.createNativeQuery("select col_key from keys").getSingleResult();
 		key++;
