@@ -16,7 +16,7 @@ public class DatabaseLogService implements LogService {
 	@Transactional(propagation=Propagation.REQUIRES_NEW) //3
 	public void log(String message) {
 		jdbcTemplate.execute("insert into LOG values('" + message + "')");
-		throw new RuntimeException("TEST ROLLBACK"); //1, 3
+		//throw new RuntimeException("TEST ROLLBACK"); //1, 3
 	}
 
 }

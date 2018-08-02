@@ -49,4 +49,6 @@ public interface BooksService{
 	void deleteBookByIsbn(String isbn) throws BookException;
 	
 	Collection<Book> findAllBooks();
+	
+	void jpaDemo(String isbn);
 }
