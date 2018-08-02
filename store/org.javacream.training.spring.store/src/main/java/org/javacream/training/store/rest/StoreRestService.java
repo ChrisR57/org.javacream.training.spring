@@ -10,7 +10,7 @@ public class StoreRestService {
 
 	@RequestMapping(method=RequestMethod.GET, path="store/{cat}/{item}")
 	public int getStock(@PathVariable("cat") String category, @PathVariable("item")String item) {
-		System.out.println("Cat:" + category + ", item" + item);
+		System.out.println("Cat:" + category + ", item " + item);
 		return 4711;
 	}
 }
