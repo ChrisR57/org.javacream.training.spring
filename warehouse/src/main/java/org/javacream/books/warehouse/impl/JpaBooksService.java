@@ -25,13 +25,14 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class JpaBooksService implements BooksService {
 
-	@Autowired JpaUtil jpaUtil;
+	@Autowired
+	JpaUtil jpaUtil;
 	@Autowired
 	@Qualifier(IsbnGeneratorService.Algorithms.SEQUENCE)
 	private IsbnGeneratorService isbnGenerator;
 
 	@PersistenceContext
-	private EntityManager entityManager;//Dieser entityManager aus Sicht der Programmierung KEIN SINGLETON
+	private EntityManager entityManager;// Dieser entityManager aus Sicht der Programmierung KEIN SINGLETON
 
 	@Autowired
 	private StoreService storeService;
@@ -48,29 +49,32 @@ public class JpaBooksService implements BooksService {
 
 	@Transactional
 	public Book findBookByIsbn(String isbn) throws BookException {
-		try {
-			Book result = entityManager.find(Book.class, isbn);
+		Book result = entityManager.find(Book.class, isbn);
+		if (result == null) {
+			throw new BookException(BookException.BookExceptionType.NOT_FOUND, isbn);
+		} else {
 			result.setAvailable(storeService.getStock("books", isbn) > 0);
 			return result;
-		} catch (RuntimeException e) {
-			throw new BookException(BookException.BookExceptionType.NOT_FOUND, isbn);
 		}
 	}
+
 	@Transactional
 	public Book updateBook(Book bookValue) throws BookException {
 		entityManager.merge(bookValue);
 		return bookValue;
 	}
 
-	@Transactional (rollbackFor=BookException.class) public void deleteBookByIsbn(String isbn) throws BookException {
+	@Transactional(rollbackFor = BookException.class)
+	public void deleteBookByIsbn(String isbn) throws BookException {
 		try {
-			//Book bookComplete = entityManager.find(Book.class, isbn);
+			// Book bookComplete = entityManager.find(Book.class, isbn);
 			Book bookProxy = entityManager.getReference(Book.class, isbn);
 			entityManager.remove(bookProxy);
 		} catch (RuntimeException e) {
 			throw new BookException(BookException.BookExceptionType.NOT_DELETED, isbn);
 		}
 	}
+
 	@Transactional
 	public Collection<Book> findAllBooks() {
 		return entityManager.createQuery("select b from BookEntity as b").getResultList();
@@ -89,6 +93,6 @@ public class JpaBooksService implements BooksService {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		
+
 	}
 }
